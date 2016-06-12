@@ -52,7 +52,9 @@ class Numnum:
                 ctx[str] = args
             else:
                 funs = this.state[ctx["name"]]
-                fun  = funs[ ctx["run"] ]
+                if type(funs) != list:
+                    funs = [funs]
+                fun  = funs[ ctx["run"] - 1 ]
                 vals = fun[str]
 
                 if len(vals) != len(args):
@@ -97,10 +99,19 @@ def get_instance():
         singleton = Numnum()
     return singleton
 
-def varargs(kv):
+def named_args(kv):
     v = []
     for i in range(0, len(kv), 2):
         v.append(kv[i+1])
+    return v
+
+def unnamed_args(k):
+    v = []
+    if type(k) == np.ndarray or type(k) == list:
+        for i in range(0, len(k)):
+            v.append(k[i+1])
+    else:
+        v.append(k)
     return v
 
 def replay(filename, mode=0):      
@@ -117,8 +128,9 @@ def replay(filename, mode=0):
     # run integration test
     if mode == 0 or mode > 0:
         f = str2func(this.state["numnum_function"], 1)
-        v = varargs(this.state["numnum_varargin"])
+        v = unnamed_args(this.state["numnum_varargin"])
         f(*v)
+        print("integration %s: pass" % this.state["numnum_function"])
         
     # run unit tests
     if mode == 0 or mode < 0:
@@ -136,8 +148,8 @@ def replay(filename, mode=0):
                 passes = 0
                 for j in range(0, len(runs)): 
                     run = runs[j]
-                    arg = varargs(run["arg"])
-                    ret = varargs(run["ret"])
+                    arg = named_args(run["arg"])
+                    ret = named_args(run["ret"])
 
                     this.mode  = 0 # disable verification in functions
                     this.unit  = 1 # keep random generation enabled
@@ -153,7 +165,7 @@ def replay(filename, mode=0):
                     except:
                         raise
                 
-                print("%s %d%% pass (%d/%d)\n" % (run["name"], round(passes/len(runs)*100), run["run"], len(runs) ))
+                print("unit %s: %d%% pass (%d/%d)" % (run["name"], round(passes/len(runs)*100), run["run"], len(runs) ))
 
 
 def record(filename, f, *args):

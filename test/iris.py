@@ -27,6 +27,6 @@ def iris(k):
 # Numnum.record("python.mat", kmeans, data.loc[:, "sepal_length":"petal_width"].values , k)
 
 
-Numnum.replay("iris.mat", -1)
+Numnum.replay("iris.mat")
 
 # Numnum.replay("python.mat", kmeans, data.loc[:, "sepal_length":"petal_width"].values , k)
