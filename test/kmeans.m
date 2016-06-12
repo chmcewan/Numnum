@@ -14,10 +14,12 @@ function [means, clust, err] = kmeans(data, k)
     Numnum.returns('means', means, 'clust', clust, 'err', err);
 end
 
+% This private function cannot be unit tested
+% but it can still be integration tested
 function [means, clust, err] = kmeans_internal(data, k)
     n = size(data,1);
     p = size(data,2);
-    
+
     means = data( ceil( Numnum.rand(k,1)*n) , : ) + Numnum.randn(k, p)*1e-3;
     dists = zeros(n, k);
     clust = zeros(n, 1);

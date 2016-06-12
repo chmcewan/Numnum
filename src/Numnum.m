@@ -246,72 +246,7 @@ classdef Numnum < handle
                 return
             end
         end        
-        
-        function [] = run_unit_tests()
-            this = Numnum.get_instance();
-            keys = fieldnames(this.state);
-            funs = struct();
-            
-            for i=1:numel(keys)
-                key  = keys{i};
-                val  = this.state.(key);
-                path = strsplit(key, '_');
-                if length(path) == 5
-                    name = path{1};
-                    
-                    if ~isfield(funs, name)
-                       f = str2func(name);
-                       s.count = 0;
-                       s.args = cell(nargin(f));
-                       s.rets = cell(nargout(f));
-                       funs.(name) = s; 
-                    end
-                        
-                    fun = funs.(name);
-                    fun.count = max(str2num(path{2}), fun.count);
-                    if strcmp('arg', path{3}) == 0
-                        fun.args{str2num(path{4})} = path{5};
-                    elseif strcmp('ret', path{3}) == 0
-                        fun.rets{str2num(path{4})} = path{5};
-                    end  
-                    funs.(name) = fun;     
-                end
-            end
-            
-            names = fieldnames(funs);
-            for i=1:numel(names)
-                name = names{i};
-                fun  = funs.(name);
-                for j=1:fun.count
-                    fprintf('%s (%d/%d %d%%)\n', name, j, fun.count, round((j/fun.count)*100));
-                    
-                    f = str2func(name);
-                    N = nargout(f);
-                    args = {};
-                    rets = {};
-
-                    for k=1:length(fun.args)
-                        args{i} = this.state.( sprintf('%s_%d_arg_%d_%s', name, j, k, fun.args{k}) );
-                    end
-                    
-                    for k=1:length(fun.rets)
-                        rets{i} = this.state.( sprintf('%s_%d_ret_%d_%s', name, j, k, fun.args{k}) );
-                    end
-                    
-                    % manipulate stack context!
-                    oldmode    = this.mode;
-                    this.mode  = 0;
-                    [out{1:N}] = f(args{:});
-                    this.mode  = oldmode;
-
-                    for k=1:N
-                        Numnum.equivalent( out{k}, rets{k} );
-                    end
-            
-                end
-            end
-        end    
-
+         
         % Reproducible deterministic random number generation
         function [v] = randn(r, c)
             this = Numnum.get_instance();
