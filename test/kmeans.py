@@ -48,4 +48,10 @@ def kmeans_internal(data, k):
                     done = done + 1
                 means[i, :] = mu
 
+
+
+
+
+    clust = clust + 1
+    err   = float(err)
     return (means, clust, err)

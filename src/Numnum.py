@@ -185,7 +185,7 @@ def equivalent(a, b, A = "a", B = "b"):
         if a.shape != b.shape:
             raise Exception("size(%s) = %dx%d and size(%s) = %dx%d" % (A, a.shape[0], a.shape[1], B, b.shape[0], b.shape[1]))
                 
-        if ( abs(a-b) <= 1e-6 ).any():
+        if ( abs(a-b) > 1e-6 ).any():
             print(a)
             print(b)
             raise Exception("%s ~= %s\n" % (A, B))
