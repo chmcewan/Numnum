@@ -14,15 +14,25 @@ def kmeans(data, k):
             means = means_
             clust = clust_
             err   = err_
-    Numnum.returns('means', means, 'clust', clust, 'err', err);
+    # NB: we need to convert indices and type to be same as Matlab!
+    Numnum.returns('means', means, 'clust', clust+1, 'err', float(err))
     return (means, clust, err)
+
+def distances(mu, data):
+    d = np.zeros((data.shape[0], 1))
+    Numnum.arguments("mu", mu, "data", data)
+    for j in range(0, data.shape[0]):
+        dist = data[j, :] - mu
+        d[j] = np.dot(dist, dist.T)
+    Numnum.returns("d", d)
+    return d
 
 def kmeans_internal(data, k):
     n = data.shape[0]
     p = data.shape[1]
     
     idx   = np.floor(Numnum.rand(k,1) * n).astype(int)
-    means = data[idx[:,0]] # + Numnum.randn(k, p) * 1e-3
+    means = data[idx[:,0]] + Numnum.randn(k, p) * 1e-3
     dists = np.zeros((n, k))
     clust = np.zeros((n, 1))
     done  = 0
@@ -32,9 +42,7 @@ def kmeans_internal(data, k):
         done = 0
         for i in range(0, k):
             mu = means[i, :]
-            for j in range(0, n):
-                dist = data[j, :] - mu
-                dists[j,i] = np.dot(dist, dist.T)
+            dists[:,i] = distances(mu, data)
         vals  = np.amin(dists,  axis=1)
         clust = np.argmin(dists, axis=1)
         err   = vals.sum()
@@ -47,11 +55,4 @@ def kmeans_internal(data, k):
                 if eps < 1e-3:
                     done = done + 1
                 means[i, :] = mu
-
-
-
-
-
-    clust = clust + 1
-    err   = float(err)
     return (means, clust, err)

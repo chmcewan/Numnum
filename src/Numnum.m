@@ -93,8 +93,12 @@ classdef Numnum < handle
             this.mode  = -1;
             this.unit  = 1;
 
+            testname = [];
             if nargin == 1 || isempty(mode)
                 mode = 0;
+            elseif strcmp(class(mode), 'char')
+                testname = mode;
+                mode     = -1;
             end
             
             % run integration test
@@ -109,6 +113,11 @@ classdef Numnum < handle
                 funcs = fieldnames(this.state);
                 for i=1:numel(funcs)
                     func = funcs{i};
+                    
+                    if testname && ~strcmp(testname, func)
+                        continue;
+                    end
+          
                     if ~strncmpi(func,'numnum_',7)
                         runs = this.state.(func);  
                         f    = str2func(func);

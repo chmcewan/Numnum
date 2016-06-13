@@ -3,6 +3,7 @@ import numpy.matlib
 import scipy as sp
 import scipy.io as sio
 import inspect
+import pdb
 
 singleton = None
 
@@ -125,6 +126,11 @@ def replay(filename, mode=0):
     this.mode  = -1
     this.unit  = 1
 
+    testname = None
+    if type(mode) == str:
+        testname = mode
+        mode     = -1
+
     # run integration test
     if mode == 0 or mode > 0:
         f = str2func(this.state["numnum_function"], 1)
@@ -135,6 +141,8 @@ def replay(filename, mode=0):
     # run unit tests
     if mode == 0 or mode < 0:
         for key in this.state.keys():
+            if testname and (testname != key):
+                continue
             if not( key.startswith("numnum_") or key.startswith("_") ):
                 runs = this.state[key]  
                 f    = str2func(key, 1)
@@ -159,11 +167,15 @@ def replay(filename, mode=0):
                     this.mode  = -1
 
                     try:
-                        for k in range(0, len(ret)):
-                            equivalent( ret[k], results[k], run["ret"][2*k], run["ret"][2*k] )
+                        if len(ret) == 1:
+                            equivalent( ret[0], results, run["ret"][0], run["ret"][0] )
+                        else:
+                            for k in range(0, len(ret)):
+                                equivalent( ret[k], results[k], run["ret"][2*k], run["ret"][2*k] )
                         passes = passes + 1;
-                    except:
-                        raise
+                    except Exception as e:
+                        print(e.message)
+                        pass
                 
                 print("unit %s: %d%% pass (%d/%d)" % (run["name"], round(passes/len(runs)*100), run["run"], len(runs) ))
 
@@ -194,13 +206,27 @@ def equivalent(a, b, A = "a", B = "b"):
         raise Exception("class(%s) = %s and class(%s) = %s" % (A, type(a), B, type(b)))
 
     if type(a) == np.ndarray: 
+
+        # Meh. Fix up shapes
+        if len(a.shape) == 1 and len(b.shape) == 2:
+            if b.shape[0] == 1:
+                a = a.reshape(1, a.shape[0])
+            elif b.shape[1] == 1:
+                a = a.reshape(a.shape[0], 1)
+
+        if len(b.shape) == 1 and len(a.shape) == 2:
+            if a.shape[0] == 1:
+                b = b.reshape(1, b.shape[0])
+            elif a.shape[1] == 1:
+                b = b.reshape(b.shape[0], 1)
+
         if a.shape != b.shape:
             raise Exception("size(%s) = %dx%d and size(%s) = %dx%d" % (A, a.shape[0], a.shape[1], B, b.shape[0], b.shape[1]))
-                
-        if ( abs(a-b) > 1e-6 ).any():
-            print(a)
-            print(b)
-            raise Exception("%s ~= %s\n" % (A, B))
+             
+        delta = abs(a-b)
+        chk   = delta > 1e-6   
+        if chk.any():
+            raise Exception("%s ~= %s (%d failed with max error of %f)" % (A, B, chk.sum(), delta.max()))
         
     elif type(a) == dict:
         return

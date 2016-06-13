@@ -27,8 +27,7 @@ function [means, clust, err] = kmeans_internal(data, k)
     while done ~= k
         done = 0;
         for i=1:k
-            temp = repmat(means(i, :), n, 1) - data;
-            dists(:, i) = dot(temp, temp, 2);
+            dists(:, i) = distances(means(i, :), data);
         end
         [vals, clust] = min(dists, [], 2);
         err = sum(vals);
