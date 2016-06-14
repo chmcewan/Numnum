@@ -114,7 +114,7 @@ classdef Numnum < handle
                 for i=1:numel(funcs)
                     func = funcs{i};
                     
-                    if testname && ~strcmp(testname, func)
+                    if ~isempty(testname) && ~strcmp(testname, func)
                         continue;
                     end
           
@@ -135,6 +135,8 @@ classdef Numnum < handle
                             this.unit  = 1; % keep random generation enabled
                             this.idxn  = 0; % reset random numbers
                             this.idxu  = 0;
+                            
+                            N = length(run.ret) / 2;
                             [results{1:N}] = f( run.arg{ 2:2:end  } );
                             this.mode  = -1;
 
@@ -144,10 +146,11 @@ classdef Numnum < handle
                                 end
                                 passes = passes + 1;
                             catch exception
-                                
+                                warning off backtrace
+                                warning('%s(%d): %s', func, run.run, exception.message)
                             end
                         end
-                        fprintf('%s %d%% pass (%d/%d)\n', run.name, round(passes/length(runs)*100), run.run, length(runs));
+                        fprintf('%s %d%% pass (%d/%d)\n', run.name, round(passes/length(runs)*100), passes, length(runs));
                     end
                 end
             end
@@ -197,9 +200,17 @@ classdef Numnum < handle
         function arguments(varargin)
             this = Numnum.get_instance();
             if this.mode
-                this.push();
                 try
-                    this.validate('arg', varargin{:});
+                    args = varargin;
+                    if cell2mat(cellfun( @(t) strcmp(class(t),'char'), varargin , 'UniformOutput', 0))
+                        args = cell(1, length(args)*2);
+                        for i=1:2:length(args)
+                            args{i}   = varargin{ceil(i/2)};
+                            args{i+1} = evalin('caller', varargin{ceil(i/2)});
+                        end
+                    end
+                    this.push();
+                    this.validate('arg', args{:});
                 catch exception
                     throwAsCaller(exception)
                 end
@@ -211,11 +222,19 @@ classdef Numnum < handle
             this = Numnum.get_instance();
             if this.mode
                 try
-                    this.validate('ret', varargin{:});
+                    args = varargin;
+                    if cell2mat(cellfun( @(t) strcmp(class(t),'char'), varargin , 'UniformOutput', 0))
+                        args = cell(1, length(args)*2);
+                        for i=1:2:length(args)
+                            args{i}   = varargin{ceil(i/2)};
+                            args{i+1} = evalin('caller', varargin{ceil(i/2)});
+                        end
+                    end                    
+                    this.validate('ret', args{:});
+                    this.pop();
                 catch exception
                     throwAsCaller(exception)
                 end
-                this.pop();
             end
         end
         
@@ -224,7 +243,15 @@ classdef Numnum < handle
             this = Numnum.get_instance();
             if this.mode
                 try
-                    this.validate('val', varargin{:});
+                    args = varargin;
+                    if cell2mat(cellfun( @(t) strcmp(class(t),'char'), varargin , 'UniformOutput', 0))
+                        args = cell(1, length(varargin)*2);
+                        for i=1:2:length(args)
+                            args{i}   = varargin{ceil(i/2)};
+                            args{i+1} = evalin('caller', varargin{ceil(i/2)});
+                        end
+                    end                    
+                    this.validate('val', args{:});
                 catch exception
                     throwAsCaller(exception)
                 end
@@ -247,7 +274,7 @@ classdef Numnum < handle
                 end
                 
                 if abs(a-b) >= 1e4 * eps(min(abs(a),abs(b)))
-                    throw(MException('Numnum:equivalent', sprintf('%s ~= %s\n%f ~= %f\n', A, B, a, b)));
+                    throw(MException('Numnum:equivalent', sprintf('%s ~= %s\n%d', A, B, evalc('disp(a);disp(b)'))));
                 end
             elseif isstruct(a)
                 return
@@ -261,11 +288,12 @@ classdef Numnum < handle
             this = Numnum.get_instance();
             v    = randn(r, c);
             if this.mode || this.unit
-                % FIXME: slow and dumb...
+                % need to start from deterministic location to recreate for unit tests
+                idx = 0;
                 for i=1:r
                     for j=1:c
-                        v(i,j)    = this.state.numnum_randn( mod(this.idxn, size(this.state.numnum_randn, 2)) + 1 );
-                        this.idxn = this.idxn + 1;
+                        v(i,j) = this.state.numnum_randn( mod(idx, size(this.state.numnum_randn, 2)) + 1 );
+                        idx    = idx + 1;
                     end
                 end
             end
@@ -276,11 +304,12 @@ classdef Numnum < handle
             this = Numnum.get_instance();
             v    = rand(r, c);
             if this.mode || this.unit
-                % FIXME: slow and dumb...
+                % need to start from deterministic location to recreate for unit tests
+                idx = 0; 
                 for i=1:r
                     for j=1:c
-                        v(i,j)    = this.state.numnum_rand( mod(this.idxu, size(this.state.numnum_rand, 2)) + 1 );
-                        this.idxu = this.idxu + 1;
+                        v(i,j) = this.state.numnum_rand( mod(idx, size(this.state.numnum_rand, 2)) + 1 );
+                        idx    = idx + 1;
                     end
                 end
             end  
