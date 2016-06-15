@@ -270,11 +270,11 @@ def randn(r, c):
     this = get_instance()
     v    = np.random.standard_normal((r, c))
     if this.mode or this.unit:
-        # FIXME: slow and dumb...
+        idx = 0 # needs to be deterministic for unit tests
         for i in range(0, r):
             for j in range(0, c):
-                v[i,j]    = this.state["numnum_randn"][ this.idxn % this.state["numnum_randn"].shape[0] ]
-                this.idxn = this.idxn + 1
+                v[i,j] = this.state["numnum_randn"][ idx % this.state["numnum_randn"].shape[0] ]
+                idx    = idx + 1
     return v
 
 # Reproducible deterministic random number generation
@@ -282,11 +282,11 @@ def rand(r, c):
     this = get_instance()
     v    = np.random.random((r, c))
     if this.mode or this.unit:
-        # FIXME: slow and dumb...
+        idx = 0 # needs to be deterministic for unit tests
         for i in range(0, r):
             for j in range(0, c):
-                v[i,j]    = this.state["numnum_rand"][ this.idxu % this.state["numnum_rand"].shape[0] ]
-                this.idxu = this.idxu + 1
+                v[i,j] = this.state["numnum_rand"][ idx % this.state["numnum_rand"].shape[0] ]
+                idx    = idx + 1
     return v  
 
 # Reproducible deterministic random number generation
