@@ -23,16 +23,16 @@ def iris(k=3):
 # iris(3)
 
 # run all tests
-# Numnum.replay("iris-4.mat")
+#Numnum.replay("test/iris.mat")
 
 # run integration test
-# Numnum.replay("iris-4.mat",  1)
+#Numnum.replay("test/iris.mat",  1)
 
 # run all unit tests
-# Numnum.replay("iris-4.mat", -1)
+Numnum.replay("test/iris.mat", -1)
 
 # run all unit tests for specific function
-Numnum.replay("iris-4.mat", "distances")
+Numnum.replay("test/iris.mat", "distances")
 
 
 # TODO
