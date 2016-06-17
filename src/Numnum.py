@@ -89,10 +89,7 @@ def parse(obj):
     return ans
 
 def str2func(name, offset=0):
-    return inspect.stack()[1+offset][0].f_locals[name]
-    #frame = inspect.currentframe()
-    #return frame.f_back.f_back.f_locals
-
+    return inspect.stack()[1+offset][0].f_globals[name]
 
 def get_instance():
     global singleton
