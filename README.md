@@ -2,7 +2,7 @@
 
 Numnum is a library to simplify and improve testing numerical algorithms. It simplifies testing by removing the need to generate boilerplate unit and integration test suites. It improves testing by being more thorough in its exploration and more accurate in its comparisons. 
 
-Currently, it is particularly useful for validating Matlab prototypes that have been ported into Python software.
+It is particularly useful for validating Matlab prototypes that have been ported into Python software.
 
 ## Basic principles
 
