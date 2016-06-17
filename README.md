@@ -14,7 +14,7 @@ will gather information on function invocation, input arguments and return value
 
 	>> Numnum.replay('test1.mat')
 
-will, by default, attempt to reproduce each function invocation individually (unit tests) and the entire execution (integration test). A specific function can be unit tested against all recorded invocations with
+will, by default, attempt to reproduce each function invocation individually (unit tests) and the entire execution (integration test). This ensures that numerical accuracy is being preserved both locally and globally. A specific function can be unit tested against all recorded invocations with
 
 	>> Numnum.replay('test1.mat', 'some_function')
 	some_function: 100% (237 / 237)
