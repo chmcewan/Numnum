@@ -29,7 +29,7 @@ The "trick" to getting this to work is instrumenting all functions that one care
 		Numnum.returns('x', 'y', 'z')
 	end
 
-Numnum also provides random number generation that ensures determinism, even between languages. For example,
+Variable length input and output arguments, renaming variables and recording intermediate values are all supported. Numnum also provides random number generation that ensures determinism, even between languages. For example,
 
 	vals = Numnum.randn(1000, 1)
 
