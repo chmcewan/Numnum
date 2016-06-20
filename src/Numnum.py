@@ -223,6 +223,8 @@ def equivalent(a, b, A = "a", B = "b"):
         delta = abs(a-b)
         chk   = delta > 1e-6   
         if chk.any():
+            print(a)
+            print(b)
             raise Exception("%s ~= %s (%d failed with max error of %f)" % (A, B, chk.sum(), delta.max()))
         
     elif type(a) == dict:

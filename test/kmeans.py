@@ -16,10 +16,10 @@ def kmeans(data, k):
             err   = err_
     # NB: we need to convert indices and type to be same as Matlab!
     Numnum.returns('means', means, 'clust', clust+1, 'err', float(err))
-    return (means, clust, err)
+    return (means, clust+1, float(err))
 
 def distances(mu, data):
-    d = np.zeros((data.shape[0], 1))
+    d = np.zeros((data.shape[0], )) 
     Numnum.arguments("mu", mu, "data", data)
     for j in range(0, data.shape[0]):
         dist = data[j, :] - mu
@@ -32,9 +32,9 @@ def kmeans_internal(data, k):
     p = data.shape[1]
     
     idx   = np.floor(Numnum.rand(k,1) * n).astype(int)
-    means = data[idx[:,0]] + Numnum.randn(k, p) * 1e-3
-    dists = np.zeros((n, k))
-    clust = np.zeros((n, 1))
+    means = data[idx[:,0], :] + Numnum.randn(k, p) * 1e-3
+    dists = np.zeros((n, k)) 
+    clust = np.zeros((n, 1)) 
     done  = 0
     err   = 0.0
 

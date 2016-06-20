@@ -9,8 +9,8 @@ import Numnum
 from kmeans import *
 
 def iris(k=3):
-    data                = pd.read_csv("test/iris.dat")
-    (means,clusts, err) = kmeans( data.loc[:, "sepal_length":"petal_width"].values , k)
+    data = pd.read_csv("test/iris.dat")
+    (means,clusts, err) = kmeans( data.loc[:, "sepal_length":"petal_width"].values, k)
 
     f = mp.figure(1)
     for c in data["class"].unique():
