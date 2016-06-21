@@ -5,7 +5,19 @@ import scipy.io as sio
 import inspect
 import pdb
 
+import warnings
+
 singleton = None
+
+class Result:
+    def __init__(this, name, passes, total):
+        this.name   = name
+        this.passes = float(passes)
+        this.total  = float(total)
+
+    def __repr__(this):
+        return "%s: %d%% pass (%d/%d)" % (this.name, round(this.passes/this.total*100.0), this.passes, this.total )
+
 
 class Numnum:
         def __init__(this):
@@ -64,8 +76,9 @@ class Numnum:
 
         def _validate(this, vals, *args):
                 if len(vals) != len(args):
-                    raise Exception('Incorrect number of values to validate')
-                for i in range(0, len(args), 2):
+                    warnings.warn('Incorrect number of values to validate: %d != %d' % (len(vals)/2, len(args)/2), stacklevel=3)
+                # Assume lost trailing arguments are optional
+                for i in range(0, min(len(args), len(vals)), 2):
                     key_a = args[i]
                     val_a = args[i+1]
                     key_b = vals[i]
@@ -133,6 +146,9 @@ def replay(filename, mode=0):
         testname = mode
         mode     = -1
 
+
+    test_results = {}
+
     # run integration test
     if mode == 0 or mode > 0:
         f = str2func(this.state["numnum_function"], 1)
@@ -173,8 +189,15 @@ def replay(filename, mode=0):
                         # Invoke. Return values validated internally.
                         f( *arg )
                         passes  = passes + 1
-                    except Excepttion as e:
-                        raise e
+                    except Exception as e:
+                        #raise e
+                        #import traceback
+                        #traceback.print_exc()
+                        #print(e.message)
+
+                        #print(run)
+
+                        raise
 
                     this.mode  = -1
                     this.run   = None
@@ -192,12 +215,17 @@ def replay(filename, mode=0):
                     #    print(e.message)
                     #    pass
                 
-                print("unit %s: %d%% pass (%d/%d)" % (run["name"], round(passes/len(runs)*100), passes, len(runs) ))
-                if passes != len(runs):
-                    raise Exception("unit %s: %d%% pass (%d/%d)" % (run["name"], round(passes/len(runs)*100), passes, len(runs) ))
+                #errstr= "%s: %d%% pass (%d/%d)" % (run["name"], round(float(passes)/float(len(runs))*100.0), passes, len(runs) )
+                #print(errstr)
+                #if passes != len(runs):
+                #    raise Exception(errstr)
+                #assert passes == len(runs)
+
+                test_results[key] = Result( key, passes, len(runs) )
 
         #if total_tests == 0:
         #    raise Exception("No unit tests found");
+    return test_results
 
 def record(filename, f, *args):
     this       = get_instance()
@@ -222,39 +250,60 @@ def record(filename, f, *args):
     sio.savemat(filename, this.state)
 
 def equivalent(a, b, A = "a", B = "b"):
+    try:
 
-    if type(a) != type(b):
-        raise Exception("class(%s) = %s and class(%s) = %s" % (A, type(a), B, type(b)))
+        if type(a) != type(b):
+            # check if scalar before complaining
+            if type(a) == np.ndarray and len(a.shape):   
+                if a.shape[0] == 1:
+                    if len(a.shape) == 1:
+                        a0 = a[0]
+                    else:
+                        a0 = a[0,0]
+                    if float(a0) == float(b):
+                        return
+            raise Exception("class(%s) = %s and class(%s) = %s" % (A, type(a), B, type(b)))
 
-    if type(a) == np.ndarray: 
+        if type(a) == np.ndarray: 
 
-        # Meh. Fix up shapes
-        if len(a.shape) == 1 and len(b.shape) == 2:
-            if b.shape[0] == 1:
-                a = a.reshape(1, a.shape[0])
-            elif b.shape[1] == 1:
-                a = a.reshape(a.shape[0], 1)
+            # Meh. Fix up shapes
+            if len(a.shape) == 1 and len(b.shape) == 2:
+                if b.shape[0] == 1:
+                    a = a.reshape(1, a.shape[0])
+                elif b.shape[1] == 1:
+                    a = a.reshape(a.shape[0], 1)
 
-        if len(b.shape) == 1 and len(a.shape) == 2:
-            if a.shape[0] == 1:
-                b = b.reshape(1, b.shape[0])
-            elif a.shape[1] == 1:
-                b = b.reshape(b.shape[0], 1)
+            if len(b.shape) == 1 and len(a.shape) == 2:
+                if a.shape[0] == 1:
+                    b = b.reshape(1, b.shape[0])
+                elif a.shape[1] == 1:
+                    b = b.reshape(b.shape[0], 1)
 
-        if a.shape != b.shape:
-            raise Exception("size(%s) = %dx%d and size(%s) = %dx%d" % (A, a.shape[0], a.shape[1], B, b.shape[0], b.shape[1]))
-             
-        delta = abs(a-b)
-        chk   = delta > 1e-6   
-        if chk.any():
-            print(a)
-            print(b)
-            raise Exception("%s ~= %s (%d failed with max error of %f)" % (A, B, chk.sum(), delta.max()))
-        
-    elif type(a) == dict:
-        return
-    elif type(a) == list:
-        return
+            if len(a.shape) == 1 and len(b.shape) == 1:
+                a = a.reshape( (a.shape[0], 1) )
+                b = b.reshape( (b.shape[0], 1) )
+
+            if a.shape != b.shape:
+                raise Exception("size(%s) = %dx%d and size(%s) = %dx%d" % (A, a.shape[0], a.shape[1], B, b.shape[0], b.shape[1]))
+                 
+            delta = abs(a-b)
+            chk   = delta > 1e-6   
+            if chk.any():
+                errstr = "%s ~= %s (%d failed with max error of %f)" % (A, B, chk.sum(), delta.max())
+                print(errstr)
+                print(a)
+                print(b)
+                raise Exception(errstr)
+            
+        elif type(a) == dict:
+            return
+        elif type(a) == list:
+            return
+    except Exception as e:
+        #import traceback
+        #traceback.print_exc()
+        print(e.message)
+        raise e
 
 def caller(offset=0):
     return inspect.stack()[2+offset][3]
@@ -336,8 +385,10 @@ def insist(v, rows, cols):
         cols = v.size / rows
 
     if v.ndim == 1:
-        v = v.reshape( ( rows  , cols) )    
-    elif v.shape[0] == cols and v.shape[1] == rows:
+        v = v.reshape( ( rows  , cols) )
+
+    # TODO: is this ever desirable?    
+    elif (v.shape[0] != v.shape[1]) and v.shape[0] == cols and v.shape[1] == rows:
         v = v.T
 
     assert v.shape[1] == cols    
