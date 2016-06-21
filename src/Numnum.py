@@ -17,6 +17,8 @@ class Numnum:
             this.state = {}
             this.mode  = 0 
             this.unit  = 0  
+            this.run   = None
+            this.depth = 0
 
         def push(this):
             """ push new context onto stack """
@@ -57,18 +59,19 @@ class Numnum:
                     funs = [funs]
                 fun  = funs[ ctx["run"] - 1 ]
                 vals = fun[str]
+                this._validate(vals, *args)
+            # this.ctx{end} = ctx;
 
+        def _validate(this, vals, *args):
                 if len(vals) != len(args):
                     raise Exception('Incorrect number of values to validate')
-                
                 for i in range(0, len(args), 2):
                     key_a = args[i]
                     val_a = args[i+1]
                     key_b = vals[i]
                     val_b = vals[i+1]
                     equivalent(val_a, val_b, key_a, key_b)   
-            # this.ctx{end} = ctx;
-
+            
 
 
 def parse(obj):
@@ -122,6 +125,8 @@ def replay(filename, mode=0):
     this.state = parse(sio.loadmat(filename, chars_as_strings=True, struct_as_record=False, squeeze_me=True))
     this.mode  = -1
     this.unit  = 1
+    this.run   = None
+    this.depth = 0
 
     testname = None
     if type(mode) == str:
@@ -137,6 +142,7 @@ def replay(filename, mode=0):
         
     # run unit tests
     if mode == 0 or mode < 0:
+        total_tests = 0
         for key in this.state.keys():
             if testname and (testname != key):
                 continue
@@ -156,26 +162,42 @@ def replay(filename, mode=0):
                     arg = named_args(run["arg"])
                     ret = named_args(run["ret"])
 
-                    this.mode  = 0 # disable verification in functions
-                    this.unit  = 1 # keep random generation enabled
-                    this.idxn  = 0 # reset random numbers
+                    this.mode  = 0      # disable verification in functions...
+                    this.run   = run    # ...except top-level
+                    this.depth = 0      
+                    this.unit  = 1      # keep random generation enabled
+                    this.idxn  = 0      # reset random numbers
                     this.idxu  = 0
-                    results    = f( *arg ) # invoke!
-                    this.mode  = -1
 
                     try:
-                        if len(ret) == 1:
-                            equivalent( ret[0], results, run["ret"][0], run["ret"][0] )
-                        else:
-                            for k in range(0, len(ret)):
-                                equivalent( ret[k], results[k], run["ret"][2*k], run["ret"][2*k] )
-                        passes = passes + 1;
-                    except Exception as e:
-                        print(e.message)
-                        pass
-                
-                print("unit %s: %d%% pass (%d/%d)" % (run["name"], round(passes/len(runs)*100), run["run"], len(runs) ))
+                        # Invoke. Return values validated internally.
+                        f( *arg )
+                        passes  = passes + 1
+                    except Excepttion as e:
+                        raise e
 
+                    this.mode  = -1
+                    this.run   = None
+                    this.depth = 0
+
+                    #total_tests = total_tests + 1
+                    #try:
+                    #    if len(ret) == 1:
+                    #        equivalent( ret[0], results, run["ret"][0], run["ret"][0] )
+                    #    else:
+                    #        for k in range(0, len(ret)):
+                    #            equivalent( ret[k], results[k], run["ret"][2*k], run["ret"][2*k] )
+                    #    passes = passes + 1;
+                    #except Exception as e:
+                    #    print(e.message)
+                    #    pass
+                
+                print("unit %s: %d%% pass (%d/%d)" % (run["name"], round(passes/len(runs)*100), passes, len(runs) ))
+                if passes != len(runs):
+                    raise Exception("unit %s: %d%% pass (%d/%d)" % (run["name"], round(passes/len(runs)*100), passes, len(runs) ))
+
+        #if total_tests == 0:
+        #    raise Exception("No unit tests found");
 
 def record(filename, f, *args):
     this       = get_instance()
@@ -187,6 +209,8 @@ def record(filename, f, *args):
     this.state = {}
     this.mode  = 1
     this.unit  = 0
+    this.run   = None
+    this.depth = 0
 
     n = 10000
     this.state["numnum_randn"]    = np.random.standard_normal((1, n))
@@ -237,32 +261,30 @@ def caller(offset=0):
 
 def arguments(*args):
     this = get_instance()
+    this.depth = this.depth + 1
+
     if this.mode:
         this.push()
-        #try:
         this.validate('arg', *args)
-        #except:
-        #    # TODO: throwAsCaller(exception)
-        #    raise
+    elif this.run and this.depth == 1:
+        this._validate(this.run['arg'], *args)
 
 def returns(*args):
     this = get_instance()
+    this.depth = this.depth - 1
+
     if this.mode:
-        #try:
         this.validate('ret', *args)
         this.pop()
-        #except:
-        #    # TODO: throwAsCaller(exception)
-        #    raise
+    elif this.run and this.depth == 0:
+        this._validate(this.run['ret'], *args)
 
 def values(*args):
     this = get_instance()
     if this.mode:
-        #try:
         this.validate('val', *args)
-        #except:
-        #    # TODO: throwAsCaller(exception)
-        #    raise
+    elif this.run and this.depth == 1:
+        this._validate(this.run['val'], *args)
 
 # Reproducible deterministic random number generation
 def randn(r, c):
@@ -296,4 +318,28 @@ def randperm(n):
         # FIXME: slow and dumb...
         raise Exception('Not implemented')
 
+ 
+# Fix handling of 1d ndarrays
+def insist(v, rows, cols):
+    if rows == 0 and cols == 0:
+        raise Exception("Both rows and cols connot be zero")
     
+    if type(v) == float:
+        v = np.ones(shape=(1,1), dtype=np.float64) * v
+
+    if type(v) == int:
+        v = np.ones(shape=(1,1), dtype=np.float64) * float(v)
+
+    if rows == 0:
+        rows = v.size / cols
+    if cols == 0:
+        cols = v.size / rows
+
+    if v.ndim == 1:
+        v = v.reshape( ( rows  , cols) )    
+    elif v.shape[0] == cols and v.shape[1] == rows:
+        v = v.T
+
+    assert v.shape[1] == cols    
+    assert v.shape[0] == rows       
+    return v

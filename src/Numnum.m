@@ -10,6 +10,7 @@ classdef Numnum < handle
         state   = []
         mode    = 0
         unit    = 0
+        depth   = 0
     end
     
     methods
@@ -207,6 +208,7 @@ classdef Numnum < handle
                         for i=1:2:length(args)
                             args{i}   = varargin{ceil(i/2)};
                             args{i+1} = evalin('caller', varargin{ceil(i/2)});
+                            %fprintf('%s : in %s %dx%d\n', Numnum.caller(), args{i}, size(args{i+1}, 1), size(args{i+1}, 2));
                         end
                     end
                     this.push();
@@ -228,6 +230,7 @@ classdef Numnum < handle
                         for i=1:2:length(args)
                             args{i}   = varargin{ceil(i/2)};
                             args{i+1} = evalin('caller', varargin{ceil(i/2)});
+                            %fprintf('%s : out %s %dx%d\n', Numnum.caller(), args{i}, size(args{i+1}, 1), size(args{i+1}, 2));
                         end
                     end                    
                     this.validate('ret', args{:});
