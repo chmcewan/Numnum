@@ -10,13 +10,24 @@ import warnings
 singleton = None
 
 class Result:
-    def __init__(this, name, passes, total):
+    def __init__(this, name, passes=0, total=0):
         this.name   = name
         this.passes = float(passes)
         this.total  = float(total)
 
+    def __iadd__(this, that):
+        this.passes = this.passes + that.passes
+        this.total  = this.total  + that.total
+        return this
+
+    def passed(this):
+        return this.passes == this.total
+
     def __repr__(this):
-        return "%s: %d%% pass (%d/%d)" % (this.name, round(this.passes/this.total*100.0), this.passes, this.total )
+        fr = 0.0
+        if this.total > 0:
+            fr = this.passes / this.total
+        return "%s: %d%% pass (%d/%d)" % (this.name, round(fr*100.0), this.passes, this.total )
 
 
 class Numnum:
@@ -76,7 +87,7 @@ class Numnum:
 
         def _validate(this, vals, *args):
                 if len(vals) != len(args):
-                    warnings.warn('Incorrect number of values to validate: %d != %d' % (len(vals)/2, len(args)/2), stacklevel=3)
+                    warnings.warn("Unequal number of values: %d != %d" % (len(vals)/2, len(args)/2), stacklevel=3)
                 # Assume lost trailing arguments are optional
                 for i in range(0, min(len(args), len(vals)), 2):
                     key_a = args[i]
@@ -105,7 +116,17 @@ def parse(obj):
     return ans
 
 def str2func(name, offset=0):
-    return inspect.stack()[1+offset][0].f_globals[name]
+    scope = inspect.stack()[1+offset][0].f_globals
+    if name in scope:
+        return scope[name]
+    else:
+        for s in scope:
+            if inspect.ismodule(scope[s]):
+                print("str2func recursing into '%s'" % s)
+                for m in inspect.getmembers(scope[s]):
+                    if m[0] == name:
+                        return m[1]    
+
 
 def get_instance():
     global singleton
@@ -196,7 +217,7 @@ def replay(filename, mode=0):
                         #print(e.message)
 
                         #print(run)
-
+                        #pass
                         raise
 
                     this.mode  = -1
@@ -251,6 +272,10 @@ def record(filename, f, *args):
 
 def equivalent(a, b, A = "a", B = "b"):
     try:
+
+        if type(a) == type(None):
+            warnings.warn("Ignoring null (return?) value for '%s'" % A)
+            return
 
         if type(a) != type(b):
             # check if scalar before complaining
@@ -389,6 +414,7 @@ def insist(v, rows, cols):
 
     # TODO: is this ever desirable?    
     elif (v.shape[0] != v.shape[1]) and v.shape[0] == cols and v.shape[1] == rows:
+        warnings.warn("Implicit use of transpose")
         v = v.T
 
     assert v.shape[1] == cols    
