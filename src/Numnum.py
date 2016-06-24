@@ -422,5 +422,5 @@ def equivalent(a, b, A = "a", B = "b"):
         for k in a.keys():
             equivalent(a[k], b[k], A = "%s.%s" % (A, k), B = "%s.%s" % (B, k))
     elif type(a) == list:
-        for i in range(0, min(len(a), len(b)))):
+        for i in range(0, min(len(a), len(b))):
             equivalent(a[i], b[i], A = "%s[%d]" % (A, i), B = "%s[%s]" % (B, i))
