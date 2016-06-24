@@ -409,7 +409,7 @@ def equivalent(a, b, A = "a", B = "b"):
         if a.shape != b.shape:
             raise Exception("size(%s) = %dx%d and size(%s) = %dx%d" % (A, a.shape[0], a.shape[1], B, b.shape[0], b.shape[1]))
              
-        delta = abs(a-b)
+        delta = np.abs(a-b)
         chk   = delta > 1e-6   
         if chk.any():
             errstr = "%s ~= %s (%d failed with max error of %f)" % (A, B, chk.sum(), delta.max())
