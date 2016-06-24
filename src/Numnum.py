@@ -6,6 +6,7 @@ import inspect
 import pdb
 
 import warnings
+import pdb
 
 singleton = None
 
@@ -211,13 +212,7 @@ def replay(filename, mode=0):
                         f( *arg )
                         passes  = passes + 1
                     except Exception as e:
-                        #raise e
-                        #import traceback
-                        #traceback.print_exc()
-                        #print(e.message)
-
-                        #print(run)
-                        #pass
+                        # pass
                         raise
 
                     this.mode  = -1
@@ -269,67 +264,7 @@ def record(filename, f, *args):
 
     f(*args)
     sio.savemat(filename, this.state)
-
-def equivalent(a, b, A = "a", B = "b"):
-    try:
-
-        if type(a) == type(None):
-            warnings.warn("Ignoring null (return?) value for '%s'" % A)
-            return
-
-        if type(a) != type(b):
-            # check if scalar before complaining
-            if type(a) == np.ndarray and len(a.shape):   
-                if a.shape[0] == 1:
-                    if len(a.shape) == 1:
-                        a0 = a[0]
-                    else:
-                        a0 = a[0,0]
-                    if float(a0) == float(b):
-                        return
-            raise Exception("class(%s) = %s and class(%s) = %s" % (A, type(a), B, type(b)))
-
-        if type(a) == np.ndarray: 
-
-            # Meh. Fix up shapes
-            if len(a.shape) == 1 and len(b.shape) == 2:
-                if b.shape[0] == 1:
-                    a = a.reshape(1, a.shape[0])
-                elif b.shape[1] == 1:
-                    a = a.reshape(a.shape[0], 1)
-
-            if len(b.shape) == 1 and len(a.shape) == 2:
-                if a.shape[0] == 1:
-                    b = b.reshape(1, b.shape[0])
-                elif a.shape[1] == 1:
-                    b = b.reshape(b.shape[0], 1)
-
-            if len(a.shape) == 1 and len(b.shape) == 1:
-                a = a.reshape( (a.shape[0], 1) )
-                b = b.reshape( (b.shape[0], 1) )
-
-            if a.shape != b.shape:
-                raise Exception("size(%s) = %dx%d and size(%s) = %dx%d" % (A, a.shape[0], a.shape[1], B, b.shape[0], b.shape[1]))
-                 
-            delta = abs(a-b)
-            chk   = delta > 1e-6   
-            if chk.any():
-                errstr = "%s ~= %s (%d failed with max error of %f)" % (A, B, chk.sum(), delta.max())
-                print(errstr)
-                print(a)
-                print(b)
-                raise Exception(errstr)
-            
-        elif type(a) == dict:
-            return
-        elif type(a) == list:
-            return
-    except Exception as e:
-        #import traceback
-        #traceback.print_exc()
-        print(e.message)
-        raise e
-
+   
 def caller(offset=0):
     return inspect.stack()[2+offset][3]
 
@@ -420,3 +355,72 @@ def insist(v, rows, cols):
     assert v.shape[1] == cols    
     assert v.shape[0] == rows       
     return v
+
+def equivalent(a, b, A = "a", B = "b"):
+
+    olda = a
+    oldb = b
+
+    if type(a) == type(None):
+        warnings.warn("Ignoring null (return?) value for '%s'" % A)
+        return
+
+    if type(a) == float:
+        a = np.ones( (1,1) ).reshape((1,1)) * a
+
+    if type(b) == float:
+        b = np.ones( (1,1) ).reshape((1,1)) * b
+
+    if type(a) != type(b):
+        # check if scalar before complaining
+        if type(a) == np.ndarray and len(a.shape):   
+            if a.shape[0] == 1:
+                if len(a.shape) == 1:
+                    a0 = a[0]
+                else:
+                    a0 = a[0,0]
+                if float(a0) == float(b):
+                    return
+        raise Exception("class(%s) = %s and class(%s) = %s" % (A, type(a), B, type(b)))
+
+    if type(a) == np.ndarray: 
+
+        # Meh. Fix up shapes
+        if len(a.shape) == 1 and len(b.shape) == 2:
+            if b.shape[0] == 1:
+                a = a.reshape( (1, a.shape[0]) )
+            elif b.shape[1] == 1:
+                a = a.reshape( (a.shape[0], 1) )
+
+        if len(b.shape) == 1 and len(a.shape) == 2:
+            if a.shape[0] == 1:
+                b = b.reshape( (1, b.shape[0]) )
+            elif a.shape[1] == 1:
+                b = b.reshape( (b.shape[0], 1) )
+
+        if len(a.shape) == 1 and len(b.shape) == 1:
+            a = a.reshape( (a.shape[0], 1) )
+            b = b.reshape( (b.shape[0], 1) )
+
+        if b.shape[1] == 0:
+            pdb.set_trace()
+            b = np.ones((1,1)).resize((1,1)) * float(b)
+
+        if a.shape != b.shape:
+            raise Exception("size(%s) = %dx%d and size(%s) = %dx%d" % (A, a.shape[0], a.shape[1], B, b.shape[0], b.shape[1]))
+             
+        delta = abs(a-b)
+        chk   = delta > 1e-6   
+        if chk.any():
+            errstr = "%s ~= %s (%d failed with max error of %f)" % (A, B, chk.sum(), delta.max())
+            print(errstr)
+            print(a)
+            print(b)
+            raise Exception(errstr)
+        
+    elif type(a) == dict:
+        for k in a.keys():
+            equivalent(a[k], b[k], A = "%s.%s" % (A, k), B = "%s.%s" % (B, k))
+    elif type(a) == list:
+        for i in range(0, min(len(a), len(b)))):
+            equivalent(a[i], b[i], A = "%s[%d]" % (A, i), B = "%s[%s]" % (B, i))
