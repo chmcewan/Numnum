@@ -365,10 +365,10 @@ def equivalent(a, b, A = "a", B = "b"):
         warnings.warn("Ignoring null (return?) value for '%s'" % A)
         return
 
-    if type(a) == float:
+    if type(a) in (float,int):
         a = np.ones( (1,1) ).reshape((1,1)) * a
 
-    if type(b) == float:
+    if type(b) in (float,int):
         b = np.ones( (1,1) ).reshape((1,1)) * b
 
     if type(a) != type(b):
