@@ -4,6 +4,7 @@ import scipy as sp
 import scipy.io as sio
 import inspect
 import pdb
+from numbers import Number
 
 import warnings
 import pdb
@@ -123,7 +124,7 @@ def str2func(name, offset=0):
     else:
         for s in scope:
             if inspect.ismodule(scope[s]):
-                print("str2func recursing into '%s'" % s)
+                # print("str2func recursing into '%s'" % s)
                 for m in inspect.getmembers(scope[s]):
                     if m[0] == name:
                         return m[1]    
@@ -168,6 +169,7 @@ def replay(filename, mode=0):
         testname = mode
         mode     = -1
 
+    # print(filename)
 
     test_results = {}
 
@@ -212,8 +214,9 @@ def replay(filename, mode=0):
                         f( *arg )
                         passes  = passes + 1
                     except Exception as e:
-                        # pass
-                        raise
+                        print(e.message)
+                        pass
+                        #raise
 
                     this.mode  = -1
                     this.run   = None
@@ -365,11 +368,17 @@ def equivalent(a, b, A = "a", B = "b"):
         warnings.warn("Ignoring null (return?) value for '%s'" % A)
         return
 
-    if type(a) in (float,int):
-        a = np.ones( (1,1) ).reshape((1,1)) * a
+    if isinstance(a,np.bool_) and not isinstance(b,np.bool_):
+        if a:
+            a = 1
+        else:
+            a = 0
+            
+    if isinstance(a,Number):
+        a = np.ones( (1,1) ).reshape((1,1)) * float(a)
 
-    if type(b) in (float,int):
-        b = np.ones( (1,1) ).reshape((1,1)) * b
+    if isinstance(b,Number):
+        b = np.ones( (1,1) ).reshape((1,1)) * float(b)
 
     if type(a) != type(b):
         # check if scalar before complaining
@@ -381,7 +390,14 @@ def equivalent(a, b, A = "a", B = "b"):
                     a0 = a[0,0]
                 if float(a0) == float(b):
                     return
-        raise Exception("class(%s) = %s and class(%s) = %s" % (A, type(a), B, type(b)))
+        elif type(a) == list and type(b) == np.ndarray:
+            pass
+        elif isinstance(a,Number) and type(b) == np.ndarray:
+            # Compare a scalar with an array: start by converting
+            # a to a length-1 list
+            a = [a]
+        else:
+            raise Exception("class(%s) = %s and class(%s) = %s" % (A, type(a), B, type(b)))
 
     if type(a) == np.ndarray: 
 
@@ -419,5 +435,7 @@ def equivalent(a, b, A = "a", B = "b"):
         for k in a.keys():
             equivalent(a[k], b[k], A = "%s.%s" % (A, k), B = "%s.%s" % (B, k))
     elif type(a) == list:
+        if len(a) != len(b):
+            raise Exception("len(%s) = %i and len(%s) = %i" % (A, len(a), B, len(b)))        
         for i in range(0, min(len(a), len(b))):
             equivalent(a[i], b[i], A = "%s[%d]" % (A, i), B = "%s[%s]" % (B, i))

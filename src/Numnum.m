@@ -15,8 +15,10 @@ classdef Numnum < handle
     
     methods
         % push new context onto stack
-        function [ctx] = push( this )
-            name = Numnum.caller(1);
+        function [ctx] = push( this, name )
+            if nargin < 2
+                name = Numnum.caller(1);
+            end
             if isfield(this.ids, name)
                 this.ids.(name) = this.ids.(name) + 1;
             else
@@ -35,9 +37,9 @@ classdef Numnum < handle
                 if ~isfield(this.state, ctx.name)
                     this.state.(ctx.name) = {};
                 end
-                runs = this.state.(ctx.name);
-                runs{ ctx.run } = ctx;
-                this.state.(ctx.name) = runs;
+%                 runs = this.state.(ctx.name);
+%                 runs{ ctx.run } = ctx;
+                this.state.(ctx.name){ ctx.run } = ctx;
             end
             this.ctx(end) = [];
         end
@@ -198,12 +200,12 @@ classdef Numnum < handle
         end
                  
         % Validate function arguments
-        function arguments(varargin)
+        function arguments(callerName,varargin)
             this = Numnum.get_instance();
             if this.mode
                 try
                     args = varargin;
-                    if cell2mat(cellfun( @(t) strcmp(class(t),'char'), varargin , 'UniformOutput', 0))
+                    if cellfun( @(t) ischar(t), varargin)
                         args = cell(1, length(args)*2);
                         for i=1:2:length(args)
                             args{i}   = varargin{ceil(i/2)};
@@ -211,7 +213,7 @@ classdef Numnum < handle
                             %fprintf('%s : in %s %dx%d\n', Numnum.caller(), args{i}, size(args{i+1}, 1), size(args{i+1}, 2));
                         end
                     end
-                    this.push();
+                    this.push(callerName);
                     this.validate('arg', args{:});
                 catch exception
                     throwAsCaller(exception)
@@ -225,7 +227,7 @@ classdef Numnum < handle
             if this.mode
                 try
                     args = varargin;
-                    if cell2mat(cellfun( @(t) strcmp(class(t),'char'), varargin , 'UniformOutput', 0))
+                    if cellfun( @(t) ischar(t), varargin )
                         args = cell(1, length(args)*2);
                         for i=1:2:length(args)
                             args{i}   = varargin{ceil(i/2)};
