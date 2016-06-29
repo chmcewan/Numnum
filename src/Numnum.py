@@ -439,3 +439,6 @@ def equivalent(a, b, A = "a", B = "b"):
             raise Exception("len(%s) = %i and len(%s) = %i" % (A, len(a), B, len(b)))        
         for i in range(0, min(len(a), len(b))):
             equivalent(a[i], b[i], A = "%s[%d]" % (A, i), B = "%s[%s]" % (B, i))
+
+    raise Exception("Cannot check equivalence of %s (%s) and %s (%s)" % (A, type(a), B, type(b) ))
+    
